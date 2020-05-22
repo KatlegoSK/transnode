@@ -2,13 +2,14 @@
     "environment": {
         "production": false,
         "firebase": {
-            "apiKey": "AIzaSyCpWAgboJusJqS9EUCRXZc4V7T_DGtH4Q0",
-            "authDomain": "ichef-14324.firebaseapp.com",
-            "databaseURL": "https://ichef-14324.firebaseio.com",
-            "projectId": "ichef-14324",
-            "storageBucket": "ichef-14324.appspot.com",
-            "messagingSenderId": "629470272511",
-            "appId": "1:629470272511:web:68226d0573f15547"
+          "apiKey": "AIzaSyAin0ZMzHCj9_85ULG02jWVYbbdQXJLghY",
+            "authDomain": "portal-enddata.firebaseapp.com",
+            "databaseURL": "https://portal-enddata.firebaseio.com",
+            "projectId": "portal-enddata",
+            "storageBucket": "portal-enddata.appspot.com",
+            "messagingSenderId": "402799261874",
+            "appId": "1:402799261874:web:ae670a0f54662b8a6db1ab",
+            "measurementId": "G-4VPTT29E0J"
         }
     }
 }

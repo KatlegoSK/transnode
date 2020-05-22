@@ -1,29 +1,32 @@
 import * as functions from 'firebase-functions';
 import * as express from 'express';
 import * as bodyParser from "body-parser";
-
+import  axios from 'axios';
+const nodemailer = require('nodemailer');
 const app = express();
 const main = express();
 const cors = require('cors');
-
 // const config = require('config');
 const async = require('async');
-const nodemailer = require('nodemailer');
-
 var firebase = require("firebase");
-//var firestore = require('firebase/firestore');
+const shortid = require('shortid');
+
+//ChatBot
+const {WebhookClient} = require('dialogflow-fulfillment');
+//const {Card, Suggestion} = require('dialogflow-fulfillment');
+
 var firebaseConfig = {
-    "apiKey": "AIzaSyCpWAgboJusJqS9EUCRXZc4V7T_DGtH4Q0",
-    "authDomain": "ichef-14324.firebaseapp.com",
-    "databaseURL": "https://ichef-14324.firebaseio.com",
-    "projectId": "ichef-14324",
-    "storageBucket": "ichef-14324.appspot.com",
-    "messagingSenderId": "629470272511",
-    "appId": "1:629470272511:web:68226d0573f15547"
+    apiKey: "AIzaSyAin0ZMzHCj9_85ULG02jWVYbbdQXJLghY",
+    authDomain: "portal-enddata.firebaseapp.com",
+    databaseURL: "https://portal-enddata.firebaseio.com",
+    projectId: "portal-enddata",
+    storageBucket: "portal-enddata.appspot.com",
+    messagingSenderId: "402799261874",
+    appId: "1:402799261874:web:ae670a0f54662b8a6db1ab",
+    measurementId: "G-4VPTT29E0J"
 }
 
 firebase.initializeApp(firebaseConfig);
-
 main.use('/api/v1', app);
 main.use(bodyParser.json());
 main.use(bodyParser.urlencoded({ extended: false }));
@@ -32,14 +35,8 @@ app.use(function (req, res, next) {
 
     // Website you wish to allow to connect
     res.setHeader('Access-Control-Allow-Origin', '*');
-    // Request methods you wish to allow
-    // res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-    // res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     next();
 });
-// webApi is your functions name, and you will pass main as 
-// a parameter
-
 
 
 app.post('/signIn', (req, res) => {
@@ -98,12 +95,10 @@ app.post('/signIn', (req, res) => {
 
 })
 
-app.post('/register', (req, res) => {
+app.post('/registeruser', (req, res) => {
 
     console.log("Call initiated : ", JSON.stringify(req.body));
-    var retObj = {
-
-    };
+    var retObj = {};
 
     async.parallel([
 
@@ -112,27 +107,52 @@ app.post('/register', (req, res) => {
             prepareRegistration(req.body.email, req.body.password)
 
                 .then((Response: any) => {
+                    
+                    console.log("====On Registration====");
 
-                    retObj = {
-
-                        message: "Successfull Registration!",
-                        code: "200"
+                    let employee = {
+                        empID: shortid.generate(),
+                        name: req.body.name,
+                        surname : req.body.surname,
+                        phoneNumber : req.body.phoneNumber,
+                        username: req.body.username,
+                        roleID : req.body.roleID,
+                        status: "Active",
+                        userImage:req.body.userImage,
+                        email: req.body.email
                     }
+                  
 
-                    console.log("====Registration====");
+                    let ref = firebase.firestore().collection("empTable").add(employee);
+                    ref.then(function(response: Response) {
 
-                    callback(null, retObj)
+                        console.log("Document successfully written!");
 
+                        retObj = {
+                            message: "Successfull Registration!",
+                            code: "200"
+                        }
+                        callback(null, retObj);
+                    })
+                    .catch(function(error: Error) {
+                        console.error("Error writing document: ", error);
+                        retObj = {
+                            message: "Error saving to database, please check your fields",
+                            code: "406"
+        
+                        }
+                        callback(null, retObj);
+                    });
+                  
                 }).catch((Response: any) => {
 
                     console.log("====Error ----  Registration====");
-                    console.log(Response.message);
+
                     retObj = {
 
                         message: Response.message,
                         code: "406"
                     }
-
                     callback(null, retObj)
 
                 })
@@ -152,12 +172,104 @@ app.post('/register', (req, res) => {
 
 })
 
+app.get('/getUsers', (req, res) => {
+
+    console.log("Initiated a call.getting all users...");
+    var retObj: any = {};
+
+    async.parallel([
+
+        function (callback: any) {
+
+            let res = firebase.firestore().collection('empTable')
+            res.onSnapshot((querySnapshot: any) => {
+                let users: any = [];
+                querySnapshot.forEach((doc: any) => {
+                    let data = doc.data();
+                    users.push({
+                        empID: data.empID,
+                        name: data.name,
+                        surname : data.surname,
+                        phoneNumber : data.phoneNumber,
+                        username: data.username,
+                        roleID : data.roleID,
+                        status: data.status,
+                        userImage:data.userImage,
+                        email: data.email
+                       
+                    });
+                });
+                retObj = {
+                    users: users,
+                    code :"200"
+                }
+                callback(null, retObj)
+
+            });
+
+
+        }
+    ],
+        function (err: any, results: any) {
+
+            var reqResponse = {
+                'body': retObj,
+                'details': 'success'
+            };
+            res.status(200).send(reqResponse);
+        });
+
+
+})
+
+app.get('/getRoles', (req, res) => {
+
+    console.log("Initiated a call.getting all roles...");
+    var retObj: any = {};
+
+    async.parallel([
+
+        function (callback: any) {
+
+            let res = firebase.firestore().collection('roles')
+            res.onSnapshot((querySnapshot: any) => {
+                let roles: any = [];
+                querySnapshot.forEach((doc: any) => {
+                    let data = doc.data();
+                    roles.push({
+  
+                        admin: data.admin,
+                        employee: data.employee
+                       
+                    });
+                });
+                retObj = {
+                    roles: roles,
+                    code :"200"
+                }
+                callback(null, retObj)
+
+            });
+
+
+        }
+    ],
+        function (err: any, results: any) {
+
+            var reqResponse = {
+                'body': retObj,
+                'details': 'success'
+            };
+            res.status(200).send(reqResponse);
+        });
+
+
+})
+
 app.post('/passwordReset', (req, res) => {
 
     console.log("Call initiated : ", JSON.stringify(req.body));
-    var retObj = {
-
-    };
+    var retObj = {};
 
     async.parallel([
 
@@ -208,160 +320,200 @@ app.post('/passwordReset', (req, res) => {
 
 })
 
-app.get('/readRecipes', (req, res) => {
+app.post('/mailer', (req, res) => {
 
-    console.log("Initiated a call....");
-    var retObj: any = {};
-
-    async.parallel([
-
-        function (callback: any) {
-
-            let res = firebase.firestore().collection('recipes');
-            res.onSnapshot((querySnapshot: any) => {
-                let boards: any = [];
-                querySnapshot.forEach((doc: any) => {
-                    let data = doc.data();
-                    boards.push({
-                        key: doc.id,
-                        name: data.userName,
-                        userID: data.userId,
-                        comments: data.comments,
-                        content: data.content,
-                        createdOn: data.createdOn,
-                        cheffId: data.cheffId,
-                        price: data.price
-                        //img : data.recipeImage
-
-                    });
-                });
-                retObj = boards;
-                retObj.code = "200";
-                callback(null, retObj)
-
-            });
-
-
-        }
-    ],
-        function (err: any, results: any) {
-
-            var reqResponse = {
-                'body': retObj,
-                'details': 'success'
-            };
-            res.status(200).send(reqResponse);
-        });
-
-
-})
-
-app.get('/readcheffs', (req, res) => {
-
-    console.log("Initiated a call for reading Cheffs....");
-    var retObj: any = {};
-
-    async.parallel([
-
-        function (callback: any) {
-
-            let res = firebase.firestore().collection('cheffs');
-            res.onSnapshot((querySnapshot: any) => {
-                let boards: any = [];
-                querySnapshot.forEach((doc: any) => {
-                    let data = doc.data();
-                    boards.push({
-                        key: doc.id,
-                        name: data.name,
-                        mail: data.mail,
-                        profile: data.profile,
-						img : data.img
-
-                    });
-                });
-                retObj = boards;
-                retObj.code = "200";
-                callback(null, retObj)
-
-            });
-
-
-        }
-    ],
-        function (err: any, results: any) {
-
-            var reqResponse = {
-                'body': retObj,
-                'details': 'success'
-            };
-            res.status(200).send(reqResponse);
-        });
-
-
-})
-
-
-app.post('/sendmail', (req, res) => {
-
-    res.setHeader('Access-Control-Allow-Origin', '*');
-
+    //req.body.email
     console.log("Call initiated : ", JSON.stringify(req.body));
-
-    let transporter = nodemailer.createTransport({
-        service: 'Gmail',
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
-        auth: {
-            
-            user: 'nkagiseng46@gmail.com',
-            pass: 'f@cus1sbr1ght21'
-        }
-    });
- 
-    var retObj: any = {};
-
-    const mailOptions = {
-        from: 'nkagiseng46@gmail.com',
-        to: req.body.to,
-        subject: req.body.subject,
-        html: req.body.html
+    var retObj = {
+        message:""
     };
 
-
     async.parallel([
 
         function (callback: any) {
-            console.log("Function Initiated");
-            transporter.sendMail(mailOptions, function (error: any, info: any) {
-                if (error) {
-                    console.log("====There is an ERROR====");
-                    console.log(error);
-                    console.log(":)====================:)");
-                    console.log(error.response);
-                    retObj = error.response;
-                    callback(null, retObj);
-                } else {
-                    console.log("==SUCCESS===");
-                    console.log('Email sent: ' + info.response);
-                    retObj.message = 'Email sent';
-                    callback(null, retObj);
+                
+            const transporter = nodemailer.createTransport({ 
+                service: 'Gmail',
+                auth: {
+                  user: 'emailsend283@gmail.com',
+                  pass: 'sendEm@il01'
                 }
-            });
+              });
 
-        }
+              const mailOptionsForClient = {
+                from: 'emailsend283@gmail.com',
+                to: req.body.from,
+                subject: 'Bonny Xilaveko Project and Training',
+                  html:  'Dear '+req.body.name+' <br> <br>Your message has been received. We will get back to you. Thanks.<br><br> <br> Regards, <br> Bonny Xilaveko Project and Training'
+                };
+
+              mailToOwner(req.body.from,req.body.name,req.body.mailBody,transporter).then(response=>{
+                console.log("ToOwner First Instance");
+                console.log(response);
+                transporter.sendMail(mailOptionsForClient, function(error: any, info: any){
+                    if (error) {
+                      console.log(error.response);
+                      retObj.message = error.response;
+                      callback(null, retObj);
+                    } else {
+                      console.log('Email sent: ' + info.response);
+                      retObj.message = 'Email sent';
+                      callback(null, retObj);
+                    }
+                  });
+                    
+
+              })
+
+              
+
+        } 
     ],
         function (err: any, results: any) {
 
-            console.log("SENDING RESPONSE========");
             var reqResponse = {
                 'body': retObj,
                 'details': 'success'
             };
-
             res.status(200).send(reqResponse);
-
         });
+
+
+
+})
+
+function mailToOwner(emailFrom: string, name : string, content: string, transporter: any)
+{
+    return new Promise((resolve, reject)=>{
+
+        const mailOptions = {
+            from: emailFrom,
+              to: 'emailsend283@gmail.com',
+              subject: 'Client Mail',
+              html:  'You have an email. <br> <br><b>Below is the email content:</b> <br>'+content +' <br> <b>Email from<b> <br>' +'Email: '+emailFrom+'<br>Name:'+name
+            };
+
+            transporter.sendMail(mailOptions, function (err: any, info:any) {
+                if(err)
+                  {
+                    console.log(err)
+                    resolve({"sent":false});
+                  }
+                else
+                  {
+                    console.log(info);
+                    resolve({"sent":true});
+                  }
+             });
+
+
+    });
+}
+
+app.post('/chat', (request, response) => {
+
+    console.log("Initiated a call....");
+        
+    console.log("--->>>>>We are here|||||||");
+    const agent = new WebhookClient({ request: request, response : response });
+    console.log('Dialogflow Request headers: ' + JSON.stringify(request.headers));
+    console.log('Dialogflow Request body: ' + JSON.stringify(request.body));
+
+    
+
+    const transporter = nodemailer.createTransport({ 
+        service: 'Gmail',
+        auth: {
+          user: 'emailsend283@gmail.com',
+          pass: 'sendEm@il01'
+        }
+      });
+   
+    function welcome(agent: any) {
+     console.log("Request Data-Agent->> Incoming");
+     console.log(request.body.queryResult.queryText);
+      agent.add(`Hi, there :)`);
+      console.log("Sending mail...-->>>>>");
+      const mailOptions = {
+        from: 'emailsend283@gmail.com',
+          to: 'emailsend283@gmail.com',
+          subject: 'ChatBot User Interaction',
+          html:  'User says : '+request.body.queryResult.queryText +"<br>ChatBot replied: Hi, there :)"
+        };
+
+          transporter.sendMail(mailOptions, function (err: any, info:any) {
+            if(err)
+              {
+                console.log(err)
+              }
+            else
+              {
+                console.log(info);
+              }
+         });
+    }
+   
+    function fallback(agent:any) {
+      agent.add(`I didn't understand`);
+      agent.add(`I'm sorry, can you try again?`);
+      const mailOptions = {
+        from: 'emailsend283@gmail.com',
+          to: 'emailsend283@gmail.com',
+          subject: 'ChatBot - Fall Back Section',
+          html:  'User says : '+request.body.queryResult.queryText +"<br>ChatBot replied: I'm sorry, can you try again?"
+        };
+
+          transporter.sendMail(mailOptions, function (err: any, info:any) {
+            if(err)
+              {
+                console.log(err)
+              }
+            else
+              {
+                console.log(info);
+              }
+         });
+    }
+  
+    // // Uncomment and edit to make your own intent handler
+    // // uncomment `intentMap.set('your intent name here', yourFunctionHandler);`
+    // // below to get this function to be run when a Dialogflow intent is matched
+    // function yourFunctionHandler(agent) {
+    //   agent.add(`This message is from Dialogflow's Cloud Functions for Firebase editor!`);
+    //   agent.add(new Card({
+    //       title: `Title: this is a card title`,
+    //       imageUrl: 'https://developers.google.com/actions/images/badges/XPM_BADGING_GoogleAssistant_VER.png',
+    //       text: `This is the body text of a card.  You can even use line\n  breaks and emoji! 💁`,
+    //       buttonText: 'This is a button',
+    //       buttonUrl: 'https://assistant.google.com/'
+    //     })
+    //   );
+    //   agent.add(new Suggestion(`Quick Reply`));
+    //   agent.add(new Suggestion(`Suggestion`));
+    //   agent.setContext({ name: 'weather', lifespan: 2, parameters: { city: 'Rome' }});
+    // }
+  
+    // // Uncomment and edit to make your own Google Assistant intent handler
+    // // uncomment `intentMap.set('your intent name here', googleAssistantHandler);`
+    // // below to get this function to be run when a Dialogflow intent is matched
+    // function googleAssistantHandler(agent) {
+    //   let conv = agent.conv(); // Get Actions on Google library conv instance
+    //   conv.ask('Hello from the Actions on Google client library!') // Use Actions on Google library
+    //   agent.add(conv); // Add Actions on Google library responses to your agent's response
+    // }
+    // // See https://github.com/dialogflow/dialogflow-fulfillment-nodejs/tree/master/samples/actions-on-google
+    // // for a complete Dialogflow fulfillment library Actions on Google client library v2 integration sample
+  
+    // Run the proper function handler based on the matched Dialogflow intent name
+    let intentMap = new Map();
+    intentMap.set('Default Welcome Intent', welcome);
+    intentMap.set('Default Fallback Intent', fallback);
+    // intentMap.set('your intent name here', yourFunctionHandler);
+    // intentMap.set('your intent name here', googleAssistantHandler);
+    agent.handleRequest(intentMap);
+
+
+
 
 })
 
@@ -378,23 +530,244 @@ function preparePasswordReset(email: string) {
     return firebase.auth().sendPasswordResetEmail(email);
 }
 
+app.get('/ping', (req, res) => {
+
+    console.log("PING");
+    
+    res.status(200).send("PING....PING...");
+   
+
+
+})
+
+//EXT
+app.post('/history', (req, res) => {
+
+
+    console.log("Call initiated : ", JSON.stringify(req.body));
+    var retObj = {
+
+    };
+    console.log("I am req.body data");
+    console.log(req.body);
+    console.log("I am req.body data");
+    console.log("==About to save Data==");
+
+    async.parallel([
+
+       
+        function (callback: any) {
+
+            
+
+            axios.post(firebaseConfig.databaseURL + "/history.json", req.body).then((response) => {
+
+                console.log("Success----Saved Data");
+                callback(null, retObj);
+            }).catch(err => {
+
+                console.log("I am getting an Errrrrr :(");
+                console.log(err);
+                callback(null, retObj)
+               
+
+            })
+
+
+
+        }
+    ],
+        function (err: any, results: any) {
+
+            var reqResponse = {
+                'body': retObj,
+                'details': 'success'
+            };
+            res.status(200).send(reqResponse);
+            
+        });
+
+
+
+})
+
+app.post('/log', (req, res) => {
+
+
+    console.log("Call initiated : ", JSON.stringify(req.body));
+    var retObj = {
+
+    };
+    console.log("I am req.body data");
+    console.log(req.body);
+    console.log("I am req.body data");
+    console.log("==About to process Data==");
+
+    let processedData = JSON.parse(req.body.log);
+    console.log("JSON Parse");
+    console.log(processedData);
+    console.log("JSON Parse");
+    async.parallel([
+
+       
+        function (callback: any) {
+
+                console.log("...Now Updating...");
+                
+            
+                logUpdate(processedData.CRQ1,processedData.status, processedData.approveDate).then(dataRes=>{
+                    console.log("I have made an update = "+dataRes);
+                    callback(null, retObj);
+                })
+
+
+
+        }
+    ],
+        function (err: any, results: any) {
+
+            var reqResponse = {
+                'body': retObj,
+                'details': 'success'
+            };
+            res.status(200).send(reqResponse);
+            
+        });
+
+
+
+})
+
+app.post('/logger', (req, res) => {
+
+
+    console.log("Call initiated : ", JSON.stringify(req.body));
+    var retObj = {
+
+    };
+    console.log("I am req.body data");
+    console.log(req.body);
+    console.log("I am req.body data");
+    console.log("===-----About to process Data----==");
+
+    let processedData = JSON.parse(req.body.log);
+    console.log("JSON Parse");
+    console.log(processedData);
+    console.log("JSON Parse");
+    async.parallel([
+
+       
+        function (callback: any) {
+
+                console.log("...Now Sending...");
+                
+                let change = processedData[0].change.split("#");
+                let crq =  change[2];
+                let approveDate = change[6];
+                if(change[0]=="App" || change[0]=="AppRel" || change[0]=="ServerCreate" )
+                {
+                    console.log("Change == App");
+                    approveDate = change[4];
+
+                }
+                compareUpdate(crq, processedData,approveDate).then(dataRes=>{
+                    console.log("I have made an update = "+dataRes);
+                    callback(null, retObj);
+                })
+
+                //callback(null, retObj);
+
+
+
+        }
+    ],
+        function (err: any, results: any) {
+
+            var reqResponse = {
+                'body': retObj,
+                'details': 'success'
+            };
+            res.status(200).send(reqResponse);
+            
+        });
+
+
+
+})
+
+
+function compareUpdate(crq: string, processed:any, approveDate: string)
+{
+
+    return new Promise((resolve, reject)=>{
+
+    let list  =[];
+    let hasUpdated = false;
+    list = firebase.database().ref('/history');
+    list.on('value', (dataSnapshot: any) => {
+      console.log("Getting Data");
+
+      dataSnapshot.forEach((childSnapshot: any) => {
+        console.log("For Each CRQ");
+        let data = childSnapshot.val();
+        data.key = childSnapshot.key;
+       
+        if(data.CRQ1 == crq)
+        {
+            data.change = processed;
+            data.approveDate = approveDate;
+            firebase.database().ref('history/' + data.key).update(data);
+            hasUpdated = true;
+        }
+
+       
+
+      });
+
+      resolve({"updated":hasUpdated});
+
+
+    });
+    })
+
+}
+
+
+function logUpdate(crq: string, stat:string, dateApproved: string)
+{
+
+    return new Promise((resolve, reject)=>{
+
+    let list  =[];
+    let hasUpdated = false;
+    list = firebase.database().ref('/history');
+    list.on('value', (dataSnapshot: any) => {
+      console.log("Getting Data");
+
+      dataSnapshot.forEach((childSnapshot: any) => {
+        console.log("For Each CRQ");
+        let data = childSnapshot.val();
+        data.key = childSnapshot.key;
+       
+        if(data.CRQ1 == crq)
+        {
+            data.status = stat;
+            data.approveDate = dateApproved;
+            firebase.database().ref('history/' + data.key).update(data);
+            hasUpdated = true
+        }
+
+       
+
+      });
+
+      resolve({"updated":hasUpdated});
+
+
+    });
+    })
+
+}
 
 export const webApi = functions.https.onRequest(main);
 
-// function onReadRecipes() {
-//     return firestore.firestore().collection('recipes').snapshotChanges();
-// }
-
-
-
-
-
-
-
-
-// // Start writing Firebase Functions
-// // https://firebase.google.com/docs/functions/typescript
-//
-// export const helloWorld = functions.https.onRequest((request, response) => {
-//  response.send("Hello from Firebase!");
-// });
