@@ -16,15 +16,26 @@ const {WebhookClient} = require('dialogflow-fulfillment');
 //const {Card, Suggestion} = require('dialogflow-fulfillment');
 
 var firebaseConfig = {
-    apiKey: "AIzaSyAin0ZMzHCj9_85ULG02jWVYbbdQXJLghY",
-    authDomain: "portal-enddata.firebaseapp.com",
-    databaseURL: "https://portal-enddata.firebaseio.com",
-    projectId: "portal-enddata",
-    storageBucket: "portal-enddata.appspot.com",
-    messagingSenderId: "402799261874",
-    appId: "1:402799261874:web:ae670a0f54662b8a6db1ab",
-    measurementId: "G-4VPTT29E0J"
+    apiKey: "AIzaSyBCAMm4QyTYA_sL7zTo9U5da7Q4E_4AUI8",
+    authDomain: "remedy18apilog.firebaseapp.com",
+    databaseURL: "https://remedy18apilog.firebaseio.com",
+    projectId: "remedy18apilog",
+    storageBucket: "remedy18apilog.appspot.com",
+    messagingSenderId: "952362249337",
+    appId: "1:952362249337:web:86db69691c61f53c6678a8",
+    measurementId: "G-3EZY85ZNY0"
 }
+
+// var firebaseConfig = {
+//     apiKey: "AIzaSyAin0ZMzHCj9_85ULG02jWVYbbdQXJLghY",
+//     authDomain: "portal-enddata.firebaseapp.com",
+//     databaseURL: "https://portal-enddata.firebaseio.com",
+//     projectId: "portal-enddata",
+//     storageBucket: "portal-enddata.appspot.com",
+//     messagingSenderId: "402799261874",
+//     appId: "1:402799261874:web:ae670a0f54662b8a6db1ab",
+//     measurementId: "G-4VPTT29E0J"
+// }
 
 firebase.initializeApp(firebaseConfig);
 main.use('/api/v1', app);
